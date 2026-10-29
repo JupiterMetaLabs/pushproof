@@ -1,7 +1,9 @@
 {
   "name": "pushproof",
   "description": "pushproof: proven-coverage code review before you push or merge.",
-  "owner": { "name": "Dr. Sai Shibu" },
+  "owner": {
+    "name": "Jupiter Meta Labs"
+  },
   "plugins": [
     {
       "name": "pushproof",
