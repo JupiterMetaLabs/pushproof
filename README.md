@@ -12,15 +12,16 @@ instead of quietly approving the change when anything in scope was not read.
 /plugin install pushproof@pushproof
 ```
 
-Requires `git` and Python 3 (standard library only). PR features also need the GitHub CLI `gh`,
-signed in with push access to the repository.
+Requires `git` and Python 3 (standard library only). PR reviews also need the GitHub CLI `gh`,
+signed in with read access to the repository.
 
 ## Use
 
 Ask Claude in a repository:
 
 - "review my branch before I push" or `/pushproof:review`
-- "review PR #12" / "can I merge this PR?"
+- "review PR #12" / "can I merge this PR?": returns the verdict and a review message for you to
+  paste into the PR. pushproof never posts to GitHub.
 - "PP-1a2b3c is intended because ..." to dispute a finding
 - "turn on the push gate" / "install the git push hook"
 
@@ -32,6 +33,20 @@ Ask Claude in a repository:
 - Findings ordered by severity, each with file:line, quoted evidence, impact, fix, a
   verification step and a numeric confidence (multiples of 5, 50-100).
 - `.pushproof/report.md` and `report.json` in the repository.
+
+## Pull requests (read-only)
+
+`/pushproof:review` on a pull request reviews the PR's exact head commit against its base
+without changing your checkout. It then gives you:
+
+- the verdict and score;
+- a suggested review action: `PASS` → Approve, `PASS_WITH_NOTES` → Approve with comments,
+  `BLOCK` → Request changes, `INCOMPLETE` → no decision;
+- a paste-ready review message listing each finding with its location, impact, fix and
+  confidence, saved to `.pushproof/pr-message.md`.
+
+You post the message and choose the review action yourself. pushproof does not comment,
+approve or merge.
 
 ## How coverage is proven
 
@@ -55,7 +70,6 @@ returns.
 |---|---|---|---|
 | Claude Code hook | `pushproof.py gate on` | HEAD has a passing verdict; `gh pr merge` pins a passing commit with `--match-head-commit` | Pushes and merges run by Claude |
 | git `pre-push` hook | `pushproof.py gate install-git-hook` | Every pushed commit has a passing verdict | All pushes from that clone |
-| GitHub required check | Branch protection: require status `pushproof` | The PR head has a successful `pushproof` status | Every merge, including the web UI |
 
 Claude is blocked from turning the gate off; only you can.
 
@@ -67,12 +81,12 @@ Claude is blocked from turning the gate off; only you can.
   blocks `git push` / `gh pr merge` when you have turned the gate on and the commit lacks a
   passing verdict, plus direct edits to its own state files. It never changes Claude's
   permission settings.
-- **Network:** none in branch mode. In PR mode, `gh` and `git fetch` contact your GitHub host
-  using your existing `gh` sign-in to read the pull request. Only when you approve
-  `publish` does it post a commit status (context `pushproof`) and, if asked, the review report
-  as a PR comment. Nothing is sent to any other service. Code is reviewed by your own Claude
-  session.
-- **Writes:** `.pushproof/` at the repository root (added to `.git/info/exclude`), fetch refs
+- **Network:** none in branch mode. In PR mode it only reads: `gh pr view` loads the pull
+  request and `git fetch` downloads its commits, using your existing `gh` and git sign-ins.
+  It never writes to GitHub: no comments, reviews, statuses, pushes or merges. The helper
+  refuses every `gh` command except `gh pr view`. Nothing is sent to any other service. Code
+  is reviewed by your own Claude session.
+- **Writes (local only):** `.pushproof/` at the repository root (added to `.git/info/exclude`), fetch refs
   under `refs/pushproof/pr/` in PR mode, and `.git/hooks/pre-push` only when you run
   `gate install-git-hook`. It refuses to overwrite an existing pre-push hook it did not create.
 - **Credentials:** it never reads tokens itself; `gh` uses its own stored sign-in.
@@ -83,9 +97,9 @@ Claude is blocked from turning the gate off; only you can.
 - Diffs over 4,000 lines return `INCOMPLETE` unless explicitly allowed.
 - The read log proves code was opened, not how carefully it was reasoned about.
 - The Claude hook parses shell commands on a best-effort basis; pushes hidden in scripts or
-  aliases are not seen. Use the git hook and the GitHub required check for enforcement.
-- Anyone with push access can post a commit status, so a required `pushproof` check proves a
-  passing status was published, not which tool produced it.
+  aliases are not seen. Use the git hook for enforcement.
+- PR verdicts stay local: GitHub never sees them unless you paste the message yourself, so
+  GitHub's branch protection can't require a pushproof review.
 - State is per clone; verdicts and disputes are not shared with teammates.
 
 ## Acknowledgements

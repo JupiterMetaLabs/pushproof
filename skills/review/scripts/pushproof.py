@@ -9,7 +9,7 @@ Subcommands:
   check     Validate findings, apply recorded disputes, score and verdict; write report.
   feedback  Record, list or remove a dispute against a finding.
   gate      Turn the push gate on/off, show status, install/uninstall a git pre-push hook.
-  publish   (PR mode) Post the verdict as a GitHub commit status, optionally a PR comment.
+  message   (PR mode) Print the verdict and a paste-ready review message. Never posts to GitHub.
   hook      (internal) Claude Code PreToolUse hook entry point; reads JSON on stdin.
   prepush   (internal) git pre-push hook entry point.
 """
@@ -32,8 +32,14 @@ EVIDENCE_TAIL = 1  # slack lines after the cited range (evidence must START on `
 CONTEXT_RADIUS = 3  # lines either side hashed to detect "the cited code changed"
 PASSING = ("PASS", "PASS_WITH_NOTES")
 HOOK_MARKER = "# pushproof pre-push gate"
-STATUS_CONTEXT = "pushproof"
-STATUS_STATE = {"PASS": "success", "PASS_WITH_NOTES": "success", "BLOCK": "failure", "INCOMPLETE": "error"}
+# PR mode is read-only on GitHub: these are the only gh subcommands pushproof may run.
+GH_READ_ONLY = {("pr", "view")}
+REVIEW_ACTION = {
+    "PASS": "Approve",
+    "PASS_WITH_NOTES": "Approve with comments",
+    "BLOCK": "Request changes",
+    "INCOMPLETE": "No decision: the review is incomplete",
+}
 PR_URL = re.compile(r"^https?://([^/]+)/([^/]+)/([^/]+)/pull/(\d+)")
 PROTECTED_STATE = ("config.json", "verdicts.json", "feedback.json", "report.json", "report.md")
 
@@ -150,6 +156,8 @@ def fmt_ranges(rs):
 
 # ------------------------------------------------------------------ gh / PRs
 def gh(args, timeout=60):
+    if tuple(args[:2]) not in GH_READ_ONLY:
+        return None, f"refused: pushproof is read-only on GitHub and does not run `gh {' '.join(args[:2])}`"
     try:
         r = subprocess.run(["gh", *args], capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError:
@@ -527,7 +535,7 @@ def cmd_check(a):
     fpath = a.findings or os.path.join(sd, "findings.json")
     data = {"findings": [], "hypotheses": [], "summary": ""}
     if not os.path.exists(fpath):
-        incomplete.append(f"findings file missing: {fpath}")
+        incomplete.append(f"findings file missing: {os.path.relpath(fpath, root)}")
     else:
         try:
             data = json.load(open(fpath))
@@ -589,6 +597,8 @@ def cmd_check(a):
     json.dump(report, open(os.path.join(sd, "report.json"), "w"), indent=2)
     md = render(report)
     open(os.path.join(sd, "report.md"), "w").write(md)
+    if m.get("pr"):
+        open(os.path.join(sd, "pr-message.md"), "w").write(render_pr_message(report))
     if cur == m["head"]:
         hist_path = os.path.join(sd, "verdicts.json")
         hist = load_json(hist_path, {})
@@ -883,43 +893,58 @@ def cmd_prepush(a):
     sys.exit(0)
 
 
-# ------------------------------------------------------------------- publish
-def cmd_publish(a):
+# ------------------------------------------------------------------- message
+def render_pr_message(r):
+    """Paste-ready PR review message. pushproof never posts it; the user does."""
+    pr, c, v = r["pr"], r["counts"], r["verdict"]
+    scored = "no score" if v == "INCOMPLETE" else f"{r['score']}/5"
+    o = [f"**pushproof review: {v} ({scored})**",
+         f"PR #{pr['number']} ({pr['head_name']} -> {pr['base_name']}) at `{r['head'][:10]}`",
+         "", f"**Suggested review action:** {REVIEW_ACTION[v]}", ""]
+    if r.get("summary"):
+        o += [r["summary"], ""]
+    if v == "INCOMPLETE":
+        o += ["The review did not finish, so it gives no verdict on this code:"]
+        o += [f"- {x}" for x in r["incomplete_reasons"]]
+        return "\n".join(o) + "\n"
+    o.append(f"Findings: {c['critical']} critical, {c['high']} high, {c['medium']} medium, {c['low']} low. "
+             f"Every changed line in the {r['files_in_scope']} file(s) in scope was read.")
+    for i, f in enumerate(r["findings"], 1):
+        loc = f"{f['file']}:{f['line']}" + (f"-{f['end_line']}" if f.get("end_line", f["line"]) != f["line"] else "")
+        o += ["", f"{i}. **[{f['severity'].upper()}] {f['title']}** (`{loc}`, {f['confidence']}% confidence)",
+              f"   - Impact: {f['impact']}", f"   - Fix: {f['fix']}", f"   - Verify: {f['verify']}"]
+    if r.get("explained"):
+        o += ["", "Explained as intended (not counted):"]
+        o += [f"- `{f['file']}:{f['line']}` {f['title']}: {f['intended']}" for f in r["explained"]]
+    if r.get("hypotheses"):
+        o += ["", "Open questions (below 50% confidence, not counted):"]
+        for h in r["hypotheses"]:
+            o.append(f"- {h.get('claim', h) if isinstance(h, dict) else h}")
+    return "\n".join(o) + "\n"
+
+
+def cmd_message(a):
     root = repo_root()
     os.chdir(root)
     sd = state_dir(root)
     m = load_manifest(sd)
     r = load_json(os.path.join(sd, "report.json"), None)
     if not r or not r.get("pr"):
-        sys.exit("error: no PR report; run `scope --pr <n>` and `check` first.")
-    pr = r["pr"]
+        sys.exit("error: no PR review; run `scope --pr <n>` and `check` first.")
     if r["head"] != m["head"]:
         sys.exit("error: report and round disagree; re-run check.")
-    live, err = pr_live_head(pr)
+    live, err = pr_live_head(r["pr"])
+    note = ""
     if err:
-        sys.exit(f"error: could not confirm the PR head: {err}")
-    if live != r["head"]:
-        sys.exit(f"error: PR #{pr['number']} moved ({r['head'][:10]} -> {live[:10]}) since this "
-                 "review; re-run scope and check. Nothing was published.")
-    target = pr["url"]
-    if a.comment:
-        out, err = gh(["pr", "comment", str(pr["number"]), "--repo", pr_slug(pr),
-                       "--body-file", os.path.join(sd, "report.md")])
-        if err:
-            sys.exit(f"error: posting the PR comment failed: {err}. No status was posted.")
-        urls = re.findall(r"https?://\S+", out or "")
-        target = urls[-1] if urls else target
-        print(f"Posted report comment: {target}")
-    c = r["counts"]
-    desc = (f"{r['verdict']} {r['score']}/5: {c['critical']}C {c['high']}H {c['medium']}M {c['low']}L")[:140]
-    out, err = gh(["api", "--hostname", pr["host"], "-X", "POST",
-                   f"repos/{pr['owner']}/{pr['repo']}/statuses/{r['head']}",
-                   "-f", f"state={STATUS_STATE[r['verdict']]}", "-f", f"context={STATUS_CONTEXT}",
-                   "-f", f"description={desc}", "-f", f"target_url={target}"])
-    if err:
-        sys.exit(f"error: posting the commit status failed: {err}")
-    print(f"Posted status '{STATUS_CONTEXT}' = {STATUS_STATE[r['verdict']]} on {r['head'][:10]} "
-          f"for PR #{pr['number']}.")
+        note = f"\nWARNING: could not confirm the PR head on GitHub ({err}); the PR may have changed."
+    elif live != r["head"]:
+        note = (f"\nWARNING: PR #{r['pr']['number']} moved ({r['head'][:10]} -> {live[:10]}) since this "
+                "review. This message describes the old head; re-run scope and check.")
+    scored = "no score" if r["verdict"] == "INCOMPLETE" else f"{r['score']}/5"
+    print(f"Verdict: {r['verdict']} ({scored}). Suggested review action: {REVIEW_ACTION[r['verdict']]}.")
+    print(f"Message saved to {os.path.join(STATE, 'pr-message.md')}; pushproof never posts it.{note}")
+    print("-" * 60)
+    print(render_pr_message(r), end="")
 
 
 def merge_target(command):
@@ -998,9 +1023,8 @@ def main():
     g.add_argument("action", nargs="?", default="status",
                    choices=["status", "on", "off", "install-git-hook", "uninstall-git-hook"])
     g.set_defaults(fn=cmd_gate)
-    pb = sub.add_parser("publish")
-    pb.add_argument("--comment", action="store_true", help="also post report.md as a PR comment")
-    pb.set_defaults(fn=cmd_publish)
+    ms = sub.add_parser("message")
+    ms.set_defaults(fn=cmd_message)
     h = sub.add_parser("hook")
     h.set_defaults(fn=cmd_hook)
     pp = sub.add_parser("prepush")

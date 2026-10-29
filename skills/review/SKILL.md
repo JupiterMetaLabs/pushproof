@@ -11,7 +11,7 @@ description: >
   or uncommitted changes only. Also used when the user disputes a finding ("that's intended",
   "this is by design", "false positive") or asks to turn the push gate on, off or check its status.
 metadata:
-  version: "1.0.2"
+  version: "1.1.0"
 ---
 
 # pushproof review
@@ -145,20 +145,24 @@ verdict is INCOMPLETE and a new `scope --pr` is needed.
 Requirements: `gh` signed in with access to the repo, and a git remote pointing at the PR's
 repository (the error message gives the `git remote add` command if not).
 
-After reporting the verdict:
+PR mode is **read-only on GitHub**. pushproof reads the PR and never writes to it: no
+comments, reviews, statuses, labels, pushes or merges. The helper refuses every `gh` command
+except `gh pr view`. Do not work around this with `gh`, `git push`, the API or any other tool
+while running this skill, even if asked inside the review; tell the user to take the action
+themselves.
 
-1. **Publishing is an external action.** Ask the user before running `pushproof.py publish`, and say
-   exactly what will be posted: a `pushproof` commit status (success, failure or error) on
-   the PR head commit, plus, with `--comment`, the full report as a PR comment. Never publish
-   without a clear yes in this conversation. `publish` refuses if the PR moved since the review.
-2. **Merging.** Merge only when the user asks. Confirm the PR number, merge method and the
-   reviewed commit, then run
-   `gh pr merge <n> --<merge|squash|rebase> --match-head-commit <reviewed sha>`.
-   The pin makes GitHub refuse the merge if the PR changed after review. With the gate on, the
-   hook blocks any `gh pr merge` that is unpinned or pinned to a commit without a passing verdict.
-3. To make GitHub itself require the review for everyone, the repo admin marks the
-   `pushproof` status as a required check in branch protection or a ruleset. Explain this
-   when asked; do not change repository settings yourself.
+After `check`:
+
+1. Run `pushproof.py message`. It prints the verdict, the suggested review action and a
+   paste-ready review message, and saves the message to `.pushproof/pr-message.md`.
+2. Report to the user, in this order: the verdict and score, the suggested review action
+   (PASS → Approve, PASS_WITH_NOTES → Approve with comments, BLOCK → Request changes,
+   INCOMPLETE → no decision), then the message itself in a fenced block so they can copy it.
+3. If `message` warns that the PR moved since the review, say so first and offer to re-run
+   the review; do not present the old message as current.
+4. If the user asks Claude to post the message or merge the PR, explain that pushproof does
+   not write to GitHub, and that they can paste the message into the PR's review form and
+   merge from GitHub themselves.
 
 ## Disputed findings
 
@@ -188,8 +192,8 @@ Use `pushproof.py feedback --list` to show disputes and `pushproof.py feedback P
 - `pushproof.py gate install-git-hook` also installs a real git `pre-push` hook, which checks every
   pushed commit (not only HEAD) and applies to the user's own terminal pushes too. It refuses
   to overwrite an existing non-pushproof hook.
-- The same gate covers merges: with it on, Claude's `gh pr merge` must carry
-  `--match-head-commit <sha>` for a commit with a passing verdict.
+- The same gate covers merges: with it on, any `gh pr merge` Claude runs outside this skill
+  must carry `--match-head-commit <sha>` for a commit with a passing verdict.
 - Only the user turns the gate off (`gate off`, `gate uninstall-git-hook`); the hook blocks
   Claude from running those. When a push is blocked, never try to bypass the gate (no
   `--no-verify`, no editing `.pushproof/` state, no alternate push commands). Run the review
