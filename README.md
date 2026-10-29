@@ -8,7 +8,7 @@ instead of a quiet pass when anything in scope was not read.
 ## Install
 
 ```
-/plugin marketplace add saishibu/pushproof
+/plugin marketplace add JupiterMetaLabs/pushproof
 /plugin install pushproof@pushproof
 ```
 

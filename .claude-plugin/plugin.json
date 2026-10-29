@@ -3,7 +3,18 @@
   "displayName": "pushproof",
   "version": "1.0.0",
   "description": "Pre-push and pre-merge code review for a git branch or GitHub pull request, with proven file coverage, mechanically checked citations, a severity-ordered verdict and an optional push/merge gate.",
-  "author": { "name": "Dr. Sai Shibu" },
+  "author": {
+    "name": "Jupiter Meta Labs"
+  },
+  "homepage": "https://github.com/JupiterMetaLabs/pushproof",
+  "repository": "https://github.com/JupiterMetaLabs/pushproof",
   "license": "MIT",
-  "keywords": ["code-review", "git", "pre-push", "pull-request", "coverage", "merge-gate"]
+  "keywords": [
+    "code-review",
+    "git",
+    "pre-push",
+    "pull-request",
+    "coverage",
+    "merge-gate"
+  ]
 }
