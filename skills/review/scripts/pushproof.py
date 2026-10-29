@@ -68,7 +68,7 @@ def detect_base():
     for cand in ("origin/main", "origin/master", "origin/develop", "main", "master", "develop"):
         if ref_exists(cand):
             return cand
-    sys.exit("error: could not detect a base branch; pass --base <ref>.")
+    sys.exit("error: could not detect a base branch; use --base <ref>.")
 
 
 def file_lines(rev, path):

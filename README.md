@@ -3,7 +3,7 @@
 Code review you can prove happened. pushproof has Claude review every change on a git branch, or
 in a GitHub pull request, against its base before you push or merge. It logs every line Claude
 reads, rejects any finding whose citation does not match the code, and returns `INCOMPLETE`
-instead of a quiet pass when anything in scope was not read.
+instead of quietly approving the change when anything in scope was not read.
 
 ## Install
 
@@ -92,8 +92,8 @@ Claude is blocked from turning the gate off; only you can.
 
 pushproof is inspired by [Warden](https://wardenreview.com/), a command-line code reviewer that
 reviews a whole branch against its base before you push. Its ideas of fixing the files in scope
-before the review, checking them off at the end, and returning `INCOMPLETE` rather than a quiet
-pass when anything was missed shaped this plugin's design. pushproof is an independent project and
+before the review, checking them off at the end, and returning `INCOMPLETE` rather than quietly
+approving a change when anything was missed shaped this plugin's design. pushproof is an independent project and
 is not affiliated with or endorsed by Warden.
 
 ## Licence

@@ -11,7 +11,7 @@ description: >
   or uncommitted changes only. Also used when the user disputes a finding ("that's intended",
   "this is by design", "false positive") or asks to turn the push gate on, off or check its status.
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
 ---
 
 # pushproof review
@@ -47,13 +47,13 @@ Run `pushproof.py scope` (add `--base <ref>` if the user names a base; otherwise
 
 - "Nothing to review" → tell the user and stop.
 - Uncommitted-changes warning → tell the user only committed HEAD is reviewed; continue.
-- Oversize warning → tell the user the diff is too large for one reliable pass and suggest
+- Oversize warning → tell the user the diff is too large for one reliable review and suggest
   splitting the branch. Continue only if the user explicitly accepts a large review; then
   use `check --allow-large`.
 
 ### 2. Read the whole change first
 
-Run `pushproof.py diff` with no arguments to see the entire diff in one pass before judging any
+Run `pushproof.py diff` with no arguments to see the entire diff in one go before judging any
 file. Build a mental map: what each file now does, and where files call, configure, guard,
 serialize or depend on each other.
 
