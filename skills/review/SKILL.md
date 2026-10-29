@@ -11,7 +11,7 @@ description: >
   or uncommitted changes only. Also used when the user disputes a finding ("that's intended",
   "this is by design", "false positive") or asks to turn the push gate on, off or check its status.
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
 # pushproof review
