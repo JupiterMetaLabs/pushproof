@@ -1,0 +1,17 @@
+{
+  "description": "pushproof: when the gate is on, blocks Claude's git push and gh pr merge unless the commit has a passing verdict; protects review state files from direct edits.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/pushproof.py\" hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

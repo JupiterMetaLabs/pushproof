@@ -1,0 +1,12 @@
+{
+  "name": "pushproof",
+  "description": "pushproof: proven-coverage code review before you push or merge.",
+  "owner": { "name": "Dr. Sai Shibu" },
+  "plugins": [
+    {
+      "name": "pushproof",
+      "source": "./",
+      "description": "Pre-push and pre-merge code review with proven coverage, checked citations and an optional push/merge gate."
+    }
+  ]
+}
