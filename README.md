@@ -88,6 +88,14 @@ Claude is blocked from turning the gate off; only you can.
   passing status was published, not which tool produced it.
 - State is per clone; verdicts and disputes are not shared with teammates.
 
+## Acknowledgements
+
+pushproof is inspired by [Warden](https://wardenreview.com/), a command-line code reviewer that
+reviews a whole branch against its base before you push. Its ideas of fixing the files in scope
+before the review, checking them off at the end, and returning `INCOMPLETE` rather than a quiet
+pass when anything was missed shaped this plugin's design. pushproof is an independent project and
+is not affiliated with or endorsed by Warden.
+
 ## Licence
 
 MIT. See `LICENSE`.
