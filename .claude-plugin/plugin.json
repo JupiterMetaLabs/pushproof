@@ -1,13 +1,17 @@
 {
   "name": "pushproof",
   "displayName": "pushproof",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Pre-push and pre-merge code review for a git branch or GitHub pull request, with proven file coverage, mechanically checked citations, a severity-ordered verdict and a paste-ready PR review message. Read-only on GitHub.",
   "author": {
     "name": "Jupiter Meta Labs"
   },
   "homepage": "https://github.com/JupiterMetaLabs/pushproof",
   "repository": "https://github.com/JupiterMetaLabs/pushproof",
+  "documentationUrl": "https://github.com/JupiterMetaLabs/pushproof#readme",
+  "supportUrl": "https://github.com/JupiterMetaLabs/pushproof/issues",
+  "privacyPolicyUrl": "https://github.com/JupiterMetaLabs/pushproof/blob/main/PRIVACY.md",
+  "termsOfServiceUrl": "https://github.com/JupiterMetaLabs/pushproof/blob/main/TERMS.md",
   "license": "MIT",
   "keywords": [
     "code-review",

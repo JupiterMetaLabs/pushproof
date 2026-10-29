@@ -110,6 +110,12 @@ before the review, checking them off at the end, and returning `INCOMPLETE` rath
 approving a change when anything was missed shaped this plugin's design. pushproof is an independent project and
 is not affiliated with or endorsed by Warden.
 
+## Support, privacy and terms
+
+- Support: [GitHub Issues](https://github.com/JupiterMetaLabs/pushproof/issues)
+- Privacy policy: [PRIVACY.md](PRIVACY.md). pushproof collects nothing.
+- Terms of use: [TERMS.md](TERMS.md)
+
 ## Licence
 
 MIT. See `LICENSE`.
