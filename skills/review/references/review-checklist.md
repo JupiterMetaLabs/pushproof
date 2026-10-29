@@ -35,7 +35,7 @@ Work top-down; stop expanding a category once it is clearly irrelevant to the di
 
 ## Tests
 - Does the change have tests for the new behaviour and the failure path?
-- Do existing tests still assert the intended behaviour, or were they edited to pass?
+- Do existing tests still assert the intended behaviour, or were they edited to succeed?
 
 Report a test gap only when the untested path carries real risk; tie it to a concrete
 scenario.
