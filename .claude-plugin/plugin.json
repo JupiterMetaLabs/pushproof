@@ -1,7 +1,7 @@
 {
   "name": "pushproof",
   "displayName": "pushproof",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Pre-push and pre-merge code review for a git branch or GitHub pull request, with proven file coverage, mechanically checked citations, a severity-ordered verdict and a paste-ready PR review message. Read-only on GitHub.",
   "author": {
     "name": "Jupiter Meta Labs"
