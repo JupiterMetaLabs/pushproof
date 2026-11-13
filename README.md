@@ -75,7 +75,8 @@ Claude is blocked from turning the gate off; only you can.
 
 ## What this plugin runs, sends and writes
 
-- **Runs:** `python3` with its bundled helper script and local `git` commands. In PR mode it
+- **Runs:** `python3` with its bundled helper (`skills/review/scripts/pushproof.py` and the small modules in
+  `pushproof_lib/` beside it, standard library only) and local `git` commands. In PR mode it
   also runs the GitHub CLI `gh`.
 - **Hook:** a `PreToolUse` hook inspects every Bash command and file edit Claude makes. It only
   blocks `git push` / `gh pr merge` when you have turned the gate on and the commit lacks a
