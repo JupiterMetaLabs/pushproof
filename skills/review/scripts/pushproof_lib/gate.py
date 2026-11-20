@@ -5,10 +5,14 @@ ENTRY_SCRIPT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 
 
 def gate_enabled(root):
+    if tracked_state(root):
+        return True  # fail closed: a committed config.json must not switch the gate off
     return bool(load_json(os.path.join(root, STATE, "config.json"), {}).get("gate"))
 
 
 def verdict_for(root, sha):
+    if tracked_state(root):
+        return None  # a committed verdicts.json must not open the gate
     return load_json(os.path.join(root, STATE, "verdicts.json"), {}).get(sha)
 
 
@@ -61,6 +65,9 @@ def cmd_gate(a):
 
 def gate_reason(root, sha):
     """None if push of `sha` is allowed, else a human-readable reason."""
+    tracked = tracked_state(root)
+    if tracked:
+        return TRACKED_STATE_MSG.format(", ".join(tracked))
     v = verdict_for(root, sha)
     if not v:
         return f"commit {sha[:10]} has no pushproof verdict"

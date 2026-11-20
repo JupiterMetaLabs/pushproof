@@ -105,7 +105,12 @@ def cmd_check(a):
     if rejected:
         incomplete.append(f"{len(rejected)} finding(s) failed validation; fix and re-run check")
 
-    disputes = load_json(os.path.join(sd, "feedback.json"), {})
+    tracked = tracked_state(root)
+    if tracked:
+        incomplete.append(TRACKED_STATE_MSG.format(", ".join(tracked)))
+        disputes = {}  # never honour disputes that could have come from a commit
+    else:
+        disputes = load_json(os.path.join(sd, "feedback.json"), {})
     explained, scored = [], []
     for f in accepted:
         d = disputes.get(f["id"])

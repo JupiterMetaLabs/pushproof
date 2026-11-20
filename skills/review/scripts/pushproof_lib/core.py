@@ -95,6 +95,20 @@ def is_text_blob(rev, path):
 
 
 # -------------------------------------------------------------- state helpers
+def tracked_state(root):
+    """pushproof's state files that git tracks in this repository. pushproof only ever
+    writes them as untracked files, so tracked ones came from a commit, possibly in the
+    very branch under review, and must never be trusted (a committed feedback.json could
+    pre-accept findings; a committed verdicts.json or config.json could open the gate)."""
+    r = subprocess.run(["git", "-C", root, "ls-files", "--", STATE], capture_output=True,
+                       text=True, encoding="utf-8", errors="replace")
+    return [l for l in r.stdout.splitlines() if l.strip()]
+
+
+TRACKED_STATE_MSG = ("the repository commits pushproof state ({}); pushproof will not trust it. "
+                     "Remove it with `git rm -r --cached .pushproof` and commit.")
+
+
 def state_dir(root):
     d = os.path.join(root, STATE)
     os.makedirs(d, exist_ok=True)
