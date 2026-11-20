@@ -104,6 +104,10 @@ def cmd_scope(a):
         print(f"  {f['status']} {f['path']}{rn}{extra}{ch}")
     if dirty:
         print("WARNING: uncommitted changes exist; only committed HEAD is reviewed.")
+    tracked = tracked_state(root)
+    if tracked:
+        print("WARNING: " + TRACKED_STATE_MSG.format(", ".join(tracked)) +
+              " The verdict will be INCOMPLETE until it is removed.")
     if manifest["oversize"]:
         print(f"WARNING: diff exceeds {a.max_diff_lines} lines; verdict will be INCOMPLETE "
               "unless check is run with --allow-large.")
