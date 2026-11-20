@@ -33,7 +33,10 @@ PROTECTED_STATE = ("config.json", "verdicts.json", "feedback.json", "report.json
 
 # ---------------------------------------------------------------- git helpers
 def run_git(args, check=True):
-    r = subprocess.run(["git", *args], capture_output=True, text=True)
+    # Repositories can hold files that aren't UTF-8 (PDFs, legacy encodings). Replace
+    # undecodable bytes instead of crashing; replacement never adds or removes a newline.
+    r = subprocess.run(["git", *args], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     if check and r.returncode != 0:
         sys.exit(f"error: git {' '.join(args)} failed: {r.stderr.strip()}")
     return r
@@ -68,7 +71,27 @@ def file_lines(rev, path):
     r = run_git(["show", f"{rev}:{path}"], check=False)
     if r.returncode != 0:
         return None
-    return r.stdout.splitlines()
+    # Split only at "\n", the way git numbers lines. str.splitlines() also breaks at form
+    # feeds and Unicode line separators, which would shift line numbers away from git's.
+    text = r.stdout
+    if text.endswith("\n"):
+        text = text[:-1]
+    return text.split("\n") if text else []
+
+
+def is_text_blob(rev, path):
+    """True if the file at rev is UTF-8 text without NUL bytes. Git only calls a file
+    binary when it sees a NUL byte, so PDFs and similar files can pass as text."""
+    r = subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True)
+    if r.returncode != 0:
+        return True
+    if b"\0" in r.stdout:
+        return False
+    try:
+        r.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    return True
 
 
 # -------------------------------------------------------------- state helpers

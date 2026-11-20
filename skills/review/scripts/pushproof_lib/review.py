@@ -71,7 +71,7 @@ def cmd_scope(a):
             old, path = parts[1], parts[2]
         else:
             old, path = None, parts[1]
-        binary = path in binaries
+        binary = path in binaries or (status != "D" and not is_text_blob(head, path))
         changed = [] if (status == "D" or binary) else changed_new_lines(mb, head, path, old)
         files.append({"path": path, "old_path": old, "status": status,
                       "binary": binary, "changed": changed})
